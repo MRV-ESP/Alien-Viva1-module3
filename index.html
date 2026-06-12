@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alien Español – Viva 1 Mod 3</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a1a; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
+  #canvas { display: block; margin: 0 auto; background: #0a0a1a; cursor: none; }
+
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0a1a; z-index: 10; overflow-y: auto; padding: 1rem 0; }
+  .screen.hidden { display: none; }
+
+  h1 { font-size: 2.8rem; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; letter-spacing: 4px; margin-bottom: 0.3rem; }
+  h2 { font-size: 1.2rem; color: #7affdf; letter-spacing: 2px; margin-bottom: 2rem; }
+
+  .btn { background: transparent; border: 2px solid #00ffcc; color: #00ffcc; font-family: 'Courier New', monospace; font-size: 1rem; padding: 0.7rem 2rem; margin: 0.4rem; cursor: pointer; letter-spacing: 2px; transition: all 0.2s; }
+  .btn:hover { background: #00ffcc; color: #0a0a1a; box-shadow: 0 0 15px #00ffcc; }
+  .btn.active { background: #00ffcc; color: #0a0a1a; }
+
+  .topic-grid { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem; max-width: 700px; }
+  .topic-btn { font-size: 0.82rem; padding: 0.5rem 1rem; }
+
+  #highscore-display { color: #ffd700; font-size: 1rem; margin-bottom: 1rem; letter-spacing: 1px; }
+  #score-history { font-size: 0.8rem; color: #7affdf; margin-bottom: 1.5rem; text-align: center; line-height: 1.8; }
+
+  #final-score { font-size: 2rem; color: #ffd700; margin: 0.5rem 0; }
+  #final-level { font-size: 1rem; color: #7affdf; margin-bottom: 1.5rem; }
+  #new-hs { color: #ffd700; font-size: 1.1rem; letter-spacing: 2px; margin-bottom: 0.5rem; display: none; }
+
+  /* Cannon selector */
+  .cannon-grid { display: flex; gap: 0.8rem; justify-content: center; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .cannon-card {
+    border: 2px solid #444;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    text-align: center;
+    min-width: 120px;
+    transition: all 0.2s;
+    font-family: 'Courier New', monospace;
+    background: transparent;
+    color: #aaa;
+  }
+  .cannon-card.active { border-color: #00ffcc; color: #00ffcc; background: rgba(0,255,204,0.08); box-shadow: 0 0 12px rgba(0,255,204,0.3); }
+  .cannon-card:hover { border-color: #7affdf; color: #7affdf; }
+  .cannon-icon { font-size: 1.6rem; display: block; margin-bottom: 0.3rem; }
+  .cannon-name { font-size: 0.75rem; letter-spacing: 1px; font-weight: bold; display: block; }
+  .cannon-desc { font-size: 0.65rem; color: inherit; opacity: 0.7; display: block; margin-top: 0.2rem; }
+  .cannon-neg  { font-size: 0.62rem; color: #ff8888; display: block; margin-top: 0.25rem; opacity: 0.85; }
+
+  #flash { position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: 0; transition: opacity 0.1s; }
+
+  /* Meteor warning */
+  #meteor-warn {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,100,0,0.85); color: #fff;
+    font-family: 'Courier New', monospace; font-size: 0.9rem;
+    padding: 0.4rem 1.2rem; border: 2px solid #ff6400;
+    pointer-events: none; z-index: 15; display: none;
+    letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menu-screen" class="screen">
+  <h1>👾 ALIEN ESPAÑOL</h1>
+  <h2>VIVA 1 — MÓDULO 3 · MI INSTI</h2>
+
+  <div id="highscore-display">🏆 HIGH SCORE: 0</div>
+
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.8rem; letter-spacing:1px;">SELECT TOPICS:</p>
+  <div class="topic-grid">
+    <button class="btn topic-btn active" data-topic="mod31">3.1 – ¿QUÉ ESTUDIAS?</button>
+    <button class="btn topic-btn active" data-topic="mod32">3.2 – ¿TE GUSTAN LAS CIENCIAS?</button>
+    <button class="btn topic-btn active" data-topic="mod33">3.3 – ¿QUÉ HAY EN TU INSTI?</button>
+    <button class="btn topic-btn active" data-topic="mod34">3.4 – DURANTE EL RECREO</button>
+    <button class="btn topic-btn active" data-topic="mod35">3.5 – ¿TE GUSTA TU INSTITUTO?</button>
+    <button class="btn topic-btn active" data-topic="mod36">3.6 – ¿CÓMO ES TU INSTI?</button>
+    <button class="btn topic-btn active" data-topic="palabras">PALABRAS – ALL VOC</button>
+  </div>
+
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.6rem; letter-spacing:1px;">SELECT DIFFICULTY:</p>
+  <div style="display:flex; gap:0.6rem; margin-bottom:0.8rem; flex-wrap:wrap; justify-content:center;">
+    <button class="btn diff-btn active" data-diff="beginner" style="border-color:#6bcb77; color:#6bcb77;">🟢 BEGINNER</button>
+    <button class="btn diff-btn" data-diff="intermediate" style="border-color:#ffd93d; color:#ffd93d;">🟡 INTERMEDIATE</button>
+    <button class="btn diff-btn" data-diff="expert" style="border-color:#ff6b6b; color:#ff6b6b;">🔴 EXPERT</button>
+  </div>
+  <div id="diff-desc" style="font-size:0.78rem; color:#aaa; margin-bottom:1.2rem; text-align:center; letter-spacing:1px; min-height:1.2em;"></div>
+
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.6rem; letter-spacing:1px;">SELECT YOUR CANNON:</p>
+  <div class="cannon-grid">
+    <div class="cannon-card active" data-cannon="standard">
+      <span class="cannon-icon">🚀</span>
+      <span class="cannon-name">STANDARD</span>
+      <span class="cannon-desc">Single shot · fast reload</span>
+      <span class="cannon-neg">No drawbacks (boring)</span>
+    </div>
+    <div class="cannon-card" data-cannon="spread">
+      <span class="cannon-icon">💥</span>
+      <span class="cannon-name">SPREAD</span>
+      <span class="cannon-desc">3-way burst · wider aim</span>
+      <span class="cannon-neg">⚠ Side shots can hit wrong answers</span>
+    </div>
+    <div class="cannon-card" data-cannon="laser">
+      <span class="cannon-icon">⚡</span>
+      <span class="cannon-name">LASER</span>
+      <span class="cannon-desc">Pierces all in column</span>
+      <span class="cannon-neg">⚠ Aliens speed up during reload</span>
+    </div>
+    <div class="cannon-card" data-cannon="bomb">
+      <span class="cannon-icon">💣</span>
+      <span class="cannon-name">BOMB</span>
+      <span class="cannon-desc">Huge blast radius</span>
+      <span class="cannon-neg">⚠ Recoil knocks ship sideways</span>
+    </div>
+  </div>
+
+  <div id="score-history"></div>
+  <button class="btn" id="start-btn" style="font-size:1.2rem; padding:0.9rem 3rem;">▶ START GAME</button>
+  <p style="color:#555; font-size:0.75rem; margin-top:1rem;">← → to move &nbsp;|&nbsp; SPACE to fire &nbsp;|&nbsp; ☄️ Dodge meteors!</p>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover-screen" class="screen hidden">
+  <h1 style="color:#ff4466;">GAME OVER</h1>
+  <div id="new-hs">⭐ NEW HIGH SCORE! ⭐</div>
+  <div id="final-score"></div>
+  <div id="final-level"></div>
+  <div id="final-diff" style="font-size:0.9rem; color:#aaa; margin-bottom:0.3rem; letter-spacing:1px;"></div>
+  <div id="final-cannon" style="font-size:0.9rem; color:#7affdf; margin-bottom:0.5rem; letter-spacing:1px;"></div>
+  <div id="score-history-go" style="font-size:0.8rem;color:#7affdf;margin-bottom:1.5rem;text-align:center;line-height:1.8;"></div>
+  <button class="btn" id="play-again-btn">↩ PLAY AGAIN</button>
+  <button class="btn" id="menu-btn">☰ MENU</button>
+</div>
+
+<!-- FLASH / METEOR WARN -->
+<div id="flash"></div>
+<div id="meteor-warn">☄️ METEOR INCOMING!</div>
+<canvas id="canvas"></canvas>
+
+<script>
+// ─── VOCAB DATA ────────────────────────────────────────────────────────────────
+const vocab = {
+
+  mod31: [
+    // Subjects
+    {es:"las ciencias",        en:"science"},
+    {es:"el dibujo",           en:"art"},
+    {es:"la educación física", en:"PE"},
+    {es:"el español",          en:"Spanish"},
+    {es:"el francés",          en:"French"},
+    {es:"la geografía",        en:"geography"},
+    {es:"la historia",         en:"history"},
+    {es:"la informática",      en:"ICT"},
+    {es:"el inglés",           en:"English"},
+    {es:"las matemáticas",     en:"maths"},
+    {es:"la música",           en:"music"},
+    {es:"la religión",         en:"RE"},
+    {es:"el teatro",           en:"drama"},
+    {es:"la tecnología",       en:"technology"},
+    // Days + studying
+    {es:"¿Qué estudias?",      en:"What do you study?"},
+    {es:"Estudio…",            en:"I study…"},
+    {es:"Los lunes",           en:"on Mondays"},
+    {es:"Los martes",          en:"on Tuesdays"},
+    {es:"Los miércoles",       en:"on Wednesdays"},
+    {es:"Los jueves",          en:"on Thursdays"},
+    {es:"Los viernes",         en:"on Fridays"},
+    {es:"¿Cuál es tu día favorito?", en:"What is your favourite day?"},
+    {es:"Mi día favorito es el…",    en:"My favourite day is…"},
+    {es:"¿Por qué?",           en:"Why?"},
+    {es:"por la mañana",       en:"in the morning"},
+    {es:"por la tarde",        en:"in the afternoon"},
+    {es:"no estudio",          en:"I don't study"},
+    // -ar 'we' forms
+    {es:"estudiamos",          en:"we study"},
+    {es:"escuchamos",          en:"we listen"},
+    {es:"tocamos",             en:"we play (an instrument)"},
+    {es:"navegamos",           en:"we browse"},
+    {es:"hablamos",            en:"we talk"},
+    {es:"calculamos",          en:"we calculate"},
+    {es:"mandamos",            en:"we send"},
+    {es:"jugamos",             en:"we play (sport)"},
+    // 'y' → 'e' rule
+    {es:"geografía e informática", en:"geography and ICT"},
+    {es:"geografía e historia",    en:"geography and history"},
+  ],
+
+  mod32: [
+    // Opinions with gustar
+    {es:"¿Te gusta el dibujo?",      en:"Do you like art?"},
+    {es:"Sí, me gusta el dibujo.",   en:"Yes, I like art."},
+    {es:"No, no me gusta el dibujo.",en:"No, I don't like art."},
+    {es:"Me gusta mucho el español.", en:"I like Spanish a lot."},
+    {es:"No me gusta nada el inglés.",en:"I don't like English at all."},
+    {es:"¿Te gustan las ciencias?",  en:"Do you like science?"},
+    {es:"Sí, me encantan las ciencias.", en:"Yes, I love science."},
+    {es:"Me gusta el español.",      en:"I like Spanish."},
+    {es:"Me gustan las matemáticas.",en:"I like maths."},
+    {es:"Me encanta la música.",     en:"I love music."},
+    {es:"Me encantan los idiomas.",  en:"I love languages."},
+    // Adjectives (singular & plural)
+    {es:"aburrido/a",      en:"boring"},
+    {es:"divertido/a",     en:"fun"},
+    {es:"difícil",         en:"difficult"},
+    {es:"fácil",           en:"easy"},
+    {es:"importante",      en:"important"},
+    {es:"interesante",     en:"interesting"},
+    {es:"práctico/a",      en:"practical"},
+    {es:"útil",            en:"useful"},
+    {es:"raro/a",          en:"strange / odd"},
+    {es:"severo/a",        en:"strict"},
+    // Reasons with porque
+    {es:"porque es divertido",   en:"because it is fun"},
+    {es:"porque es difícil",     en:"because it is difficult"},
+    {es:"porque es importante",  en:"because it is important"},
+    {es:"porque son útiles",     en:"because they are useful"},
+    {es:"porque son interesantes",en:"because they are interesting"},
+    {es:"en mi opinión",         en:"in my opinion"},
+    {es:"creo que",              en:"I think that"},
+    {es:"el profesor / la profesora", en:"the teacher"},
+    {es:"Es paciente.",          en:"He/She is patient."},
+  ],
+
+  mod33: [
+    // School facilities
+    {es:"En mi instituto hay…",    en:"In my school, there is/there are…"},
+    {es:"No hay…",                 en:"There isn't / there aren't…"},
+    {es:"un campo de fútbol",      en:"a football field"},
+    {es:"un comedor",              en:"a dining hall"},
+    {es:"un gimnasio",             en:"a gymnasium"},
+    {es:"un patio",                en:"a playground"},
+    {es:"una clase de informática",en:"an ICT room"},
+    {es:"una piscina",             en:"a swimming pool"},
+    {es:"una biblioteca",          en:"a library"},
+    {es:"unos laboratorios",       en:"some laboratories"},
+    {es:"unas clases",             en:"some classrooms"},
+    // Articles (singular/plural forms — the plural facilities above already show unos/unas)
+    {es:"un laboratorio",          en:"a laboratory (masc.)"},
+    {es:"una clase",               en:"a classroom (fem.)"},
+    {es:"el laboratorio",          en:"the laboratory"},
+    {es:"la clase",                en:"the classroom"},
+    {es:"los laboratorios",        en:"the laboratories"},
+    {es:"las clases",              en:"the classrooms"},
+    // Describing school – adjectives
+    {es:"moderno/a",   en:"modern"},
+    {es:"antiguo/a",   en:"old"},
+    {es:"bonito/a",    en:"nice"},
+    {es:"feo/a",       en:"ugly"},
+    {es:"pequeño/a",   en:"small"},
+    {es:"grande",      en:"big"},
+    {es:"El patio es grande.",         en:"The playground is big."},
+    {es:"La biblioteca es moderna.",   en:"The library is modern."},
+    {es:"Los laboratorios son feos.",  en:"The laboratories are ugly."},
+    {es:"Hay un patio y una biblioteca.", en:"There is a playground and a library."},
+  ],
+
+  mod34: [
+    // Break time activities
+    {es:"¿Qué haces durante el recreo?", en:"What do you do during break time?"},
+    {es:"Como algo.",          en:"I eat something."},
+    {es:"Bebo algo.",          en:"I drink something."},
+    {es:"Leo mis SMS.",        en:"I read my text messages."},
+    {es:"Escribo SMS.",        en:"I write text messages."},
+    {es:"Juego al fútbol.",    en:"I play football."},
+    {es:"Juego al baloncesto.", en:"I play basketball."},
+    {es:"Hablo con mis amigos.", en:"I talk with my friends."},
+    {es:"Escucho música.",     en:"I listen to music."},
+    {es:"Nunca hago los deberes.", en:"I never do my homework."},
+    // Food & drink at break
+    {es:"un bocadillo",        en:"a sandwich"},
+    {es:"unos caramelos",      en:"some sweets"},
+    {es:"chicle",              en:"chewing gum"},
+    {es:"una chocolatina",     en:"a chocolate bar"},
+    {es:"fruta",               en:"fruit"},
+    {es:"unas patatas fritas", en:"some crisps"},
+    {es:"agua",                en:"water"},
+    {es:"un refresco",         en:"a fizzy drink"},
+    {es:"un zumo",             en:"a juice"},
+    // -er verb: comer
+    {es:"como",     en:"I eat"},
+    {es:"comes",    en:"you eat"},
+    {es:"come",     en:"he/she eats"},
+    {es:"comemos",  en:"we eat"},
+    {es:"comen",    en:"they eat"},
+    // -ir verb: escribir
+    {es:"escribo",   en:"I write"},
+    {es:"escribes",  en:"you write"},
+    {es:"escribe",   en:"he/she writes"},
+    {es:"escribimos",en:"we write"},
+    {es:"escriben",  en:"they write"},
+    // Sequencers (single words kept in palabras to avoid pool duplicates)
+  ],
+
+  mod35: [
+    // Describing your school
+    {es:"¿Te gusta tu insti?",     en:"Do you like your school?"},
+    {es:"Me gusta mi insti.",      en:"I like my school."},
+    {es:"No me gusta mi insti.",   en:"I don't like my school."},
+    {es:"Los profesores son divertidos.", en:"The teachers are fun."},
+    {es:"Las clases son aburridas.",      en:"The lessons are boring."},
+    {es:"El edificio es moderno.",        en:"The building is modern."},
+    {es:"La biblioteca es pequeña.",      en:"The library is small."},
+    {es:"Me gusta mi insti porque los profesores son pacientes.", en:"I like my school because the teachers are patient."},
+    // Opinions about teachers / subjects
+    {es:"Mi profesora es divertida.",  en:"My (female) teacher is fun."},
+    {es:"Mi profesor es severo.",      en:"My (male) teacher is strict."},
+    {es:"Las clases son difíciles.",   en:"The lessons are difficult."},
+    {es:"Los idiomas son útiles.",     en:"Languages are useful."},
+    // Listening skills vocab
+    {es:"¿Cuántos años tienes?",   en:"How old are you?"},
+    {es:"Tengo catorce años.",     en:"I am fourteen years old."},
+    {es:"Vivo en…",               en:"I live in…"},
+    {es:"un campo de baloncesto", en:"a basketball court"},
+  ],
+
+  mod36: [
+    // Writing about your school (longer text)
+    {es:"¿Cómo es tu insti?",          en:"What is your school like?"},
+    {es:"Se llama…",                    en:"It is called…"},
+    {es:"Es bastante grande.",          en:"It is quite big."},
+    {es:"Es un poco feo.",              en:"It is a bit ugly."},
+    {es:"Hay una clase de informática, un comedor, un gimnasio y una piscina.", en:"There is an ICT room, a dining hall, a gymnasium and a swimming pool."},
+    {es:"No me gusta nada la educación física.", en:"I don't like PE at all."},
+    {es:"A veces escucho música.",      en:"Sometimes I listen to music."},
+    {es:"También hay…, pero no hay…",  en:"There is also…, but there is no…"},
+    {es:"Es importante estudiar.",      en:"It is important to study."},
+    // Checking grammar reminders
+    {es:"el/la/los/las",        en:"the (definite articles)"},
+    {es:"un/una/unos/unas",    en:"a/some (indefinite articles)"},
+    {es:"y → e",                en:"'and' becomes 'e' before i- / hi-"},
+    // Writing skills — connectives (single words in palabras; keeping compound expressions here)
+    {es:"¡También hay…, pero no hay…!", en:"There is also…, but there is no…!"},
+    // Intensifiers
+    {es:"muy",        en:"very"},
+    {es:"bastante",   en:"quite"},
+    {es:"un poco",    en:"a little / a bit"},
+    // Expressions of frequency (full phrases only; single words in palabras)
+    {es:"a veces… pero nunca…", en:"sometimes… but never…"},
+  ],
+
+  palabras: [
+    // High-frequency words from Palabras pages 74–75
+    // (single-word connectives & sequencers live here; phrases that duplicate
+    //  other modules have been removed to keep the pool clean)
+    {es:"algo",       en:"something"},
+    {es:"donde",      en:"where"},
+    {es:"hay",        en:"there is / there are"},
+    {es:"¿Por qué? / Porque…",  en:"Why? / Because…"},
+    {es:"porque",     en:"because"},
+    {es:"también",    en:"also / too"},
+    {es:"tampoco",    en:"nor / neither"},
+    {es:"pero",       en:"but"},
+    {es:"y",          en:"and"},
+    {es:"nunca",      en:"never"},
+    {es:"primero",    en:"first"},
+    {es:"luego",      en:"then"},
+    {es:"normalmente",en:"normally"},
+    {es:"a veces",    en:"sometimes"},
+    {es:"Los lunes estudio…",  en:"On Mondays I study…"},
+    {es:"Mi día favorito es el martes.", en:"My favourite day is Tuesday."},
+    {es:"Me gusta el teatro.",          en:"I like drama."},
+    {es:"No me gusta el dibujo.",       en:"I don't like art."},
+    {es:"Me gustan las ciencias.",      en:"I like science."},
+    {es:"Hay un campo de fútbol, pero no hay piscina.", en:"There is a football field, but there is no swimming pool."},
+    {es:"Como o bebo algo.",            en:"I eat or drink something."},
+    {es:"Primero como algo y luego juego al fútbol.", en:"First I eat something and then I play football."},
+  ],
+
+};
+
+// ─── CANNON CONFIGS ───────────────────────────────────────────────────────────
+// Each cannon has upside + a real mechanical downside felt during play.
+const CANNONS = {
+  standard: {
+    label: '🚀 STANDARD',
+    color: '#ffd700',
+    reload: 280,
+    // No drawback
+    fire: (ship, bullets) => {
+      bullets.push({ x: ship.x, y: ship.y - 15, spd: 14, active: true, type:'standard', w:3, h:8 });
+    }
+  },
+  spread: {
+    label: '💥 SPREAD',
+    color: '#ff9f1c',
+    reload: 420,
+    // DRAWBACK: the two side bullets angle outward enough to reach adjacent aliens.
+    // They are tagged wrongRisk:true — if they hit a wrong-answer alien the normal
+    // wrong-answer penalty fires (life lost, combo reset), exactly as if you aimed badly.
+    fire: (ship, bullets) => {
+      const angles = [-22, 0, 22];   // wider spread = more danger
+      angles.forEach(deg => {
+        const rad = deg * Math.PI / 180;
+        bullets.push({
+          x: ship.x, y: ship.y - 15, spd: 13, active: true, type:'spread',
+          vx: Math.sin(rad) * 13, vy: -Math.cos(rad) * 13, w:3, h:6,
+          wrongRisk: deg !== 0,   // centre shot is safe; side shots can wander
+        });
+      });
+    }
+  },
+  laser: {
+    label: '⚡ LASER',
+    color: '#c77dff',
+    reload: 750,
+    // DRAWBACK: while the laser is on cooldown the alien wave moves noticeably faster.
+    // Applied in update() by checking laserCooldownActive flag.
+    fire: (ship, bullets) => {
+      bullets.push({ x: ship.x, y: ship.y - 15, spd: 20, active: true, type:'laser',
+        piercing: true, w:2, h:22 });
+    }
+  },
+  bomb: {
+    label: '💣 BOMB',
+    color: '#ff4466',
+    reload: 950,
+    // DRAWBACK: recoil knocks the ship hard sideways in the opposite direction of movement,
+    // making it very hard to stay centred. Applied via ship.recoilVx in update().
+    fire: (ship, bullets) => {
+      bullets.push({ x: ship.x, y: ship.y - 15, spd: 8, active: true, type:'bomb',
+        explodeRadius: 90, w:8, h:8 });
+      // Recoil: kick opposite to last move direction, or random if standing still
+      const dir = (keys['ArrowLeft'] || keys['KeyA']) ? 1 : (keys['ArrowRight'] || keys['KeyD']) ? -1 : (Math.random() < 0.5 ? 1 : -1);
+      ship.recoilVx = dir * 18;
+    }
+  }
+};
+
+// ─── GAME STATE ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const flash = document.getElementById('flash');
+const meteorWarn = document.getElementById('meteor-warn');
+
+let W, H;
+function resize() {
+  W = canvas.width  = Math.min(window.innerWidth,  900);
+  H = canvas.height = Math.min(window.innerHeight, 700);
+}
+resize();
+window.addEventListener('resize', resize);
+
+let state = 'menu';
+let score, lives, level, combo;
+let aliens = [], bullets = [], particles = [], meteors = [];
+let powerups = [];      // ⚡ shield / slowmo / heart drops from meteors
+let floaters = [];      // 💬 taunts & feedback text floating on screen
+let ship;
+let currentQ, pool;
+let selectedDiff = 'beginner';
+let selectedCannon = 'standard';
+let lastFireTime = 0;
+let meteorTimer = 0;
+let meteorInterval = 18000;
+
+// combo heat & screenshake
+let shakeTime = 0, shakeMag = 0;
+
+// active power-up effects
+let shieldActive = false;
+let slowmoActive = false;
+let slowmoEndTime = 0;
+
+const HS_KEY = d => `hs_viva1mod3_${d}`;
+const SH_KEY = d => `sh_viva1mod3_${d}`;
+let highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+let scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
+
+// ─── DIFFICULTY CONFIG ────────────────────────────────────────────────────────────
+const DIFF = {
+  beginner: {
+    label: '🟢 BEGINNER',
+    desc:  '3 distractors · slow speed · 5 lives · EN → ES only',
+    color: '#6bcb77',
+    lives: 5,
+    baseSpd: 0.35,
+    spdPerLevel: 0.12,
+    distractors: 3,
+    esPromptOnly: false,
+    enPromptOnly: true,
+    levelThresh: 100,
+  },
+  intermediate: {
+    label: '🟡 INTERMEDIATE',
+    desc:  '4 distractors · medium speed · 3 lives · mixed directions',
+    color: '#ffd93d',
+    lives: 3,
+    baseSpd: 0.55,
+    spdPerLevel: 0.18,
+    distractors: 4,
+    esPromptOnly: false,
+    enPromptOnly: false,
+    levelThresh: 80,
+  },
+  expert: {
+    label: '🔴 EXPERT',
+    desc:  '5 distractors · fast · 2 lives · ES → EN only · similar distractors',
+    color: '#ff6b6b',
+    lives: 2,
+    baseSpd: 0.85,
+    spdPerLevel: 0.25,
+    distractors: 5,
+    esPromptOnly: true,
+    enPromptOnly: false,
+    levelThresh: 60,
+    similarDistractors: true,
+  },
+};
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────────
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') { e.preventDefault(); tryFire(); }
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+function tryFire() {
+  if (state !== 'playing') return;
+  const now = Date.now();
+  const reload = CANNONS[selectedCannon].reload;
+  if (now - lastFireTime < reload) return;
+  lastFireTime = now;
+  CANNONS[selectedCannon].fire(ship, bullets);
+
+  // Laser drawback: flag cooldown so update() can speed up aliens
+  if (selectedCannon === 'laser') {
+    laserCooldownActive = true;
+    setTimeout(() => { laserCooldownActive = false; }, reload);
+  }
+}
+
+// ─── DIFFICULTY TOGGLES ──────────────────────────────────────────────────────────
+const diffButtons = document.querySelectorAll('.diff-btn');
+const DIFF_DESCS = {
+  beginner:     '3 distractors · slow · 5 lives · English prompt → shoot Spanish',
+  intermediate: '4 distractors · medium · 3 lives · mixed directions',
+  expert:       '5 distractors · fast · 2 lives · Spanish prompt → shoot English',
+};
+function updateDiffDesc() {
+  document.getElementById('diff-desc').textContent = DIFF_DESCS[selectedDiff];
+}
+diffButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    diffButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedDiff = btn.dataset.diff;
+    highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+    scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
+    document.getElementById('highscore-display').textContent = `🏆 HIGH SCORE: ${highScore}`;
+    renderHistory('score-history');
+    updateDiffDesc();
+  });
+});
+
+// ─── CANNON TOGGLES ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.cannon-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.cannon-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    selectedCannon = card.dataset.cannon;
+  });
+});
+
+// ─── TOPIC TOGGLES ───────────────────────────────────────────────────────────────
+const topicButtons = document.querySelectorAll('.topic-btn');
+let selectedTopics = new Set(['mod31','mod32','mod33','mod34','mod35','mod36','palabras']);
+topicButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.topic;
+    if (selectedTopics.has(t)) {
+      if (selectedTopics.size > 1) { selectedTopics.delete(t); btn.classList.remove('active'); }
+    } else {
+      selectedTopics.add(t); btn.classList.add('active');
+    }
+  });
+});
+
+// ─── QUESTION LOGIC ──────────────────────────────────────────────────────────────
+function buildPool() {
+  pool = [];
+  selectedTopics.forEach(t => pool.push(...(vocab[t] || [])));
+  for (let i = pool.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]] = [pool[j],pool[i]];
+  }
+}
+
+function newQuestion() {
+  if (!pool.length) buildPool();
+  const item = pool.splice(0,1)[0];
+  const cfg = DIFF[selectedDiff];
+  let esFirst;
+  if (cfg.enPromptOnly)      esFirst = false;
+  else if (cfg.esPromptOnly) esFirst = true;
+  else                       esFirst = Math.random() < 0.5;
+  currentQ = {
+    prompt: esFirst ? item.es : item.en,
+    answer: esFirst ? item.en : item.es,
+    isEsPrompt: esFirst
+  };
+  return currentQ;
+}
+
+function getWrongAnswers(correct, count) {
+  const cfg = DIFF[selectedDiff];
+  const all = [];
+  selectedTopics.forEach(t => all.push(...vocab[t]));
+  const wantEs = currentQ.isEsPrompt;
+  const candidates = all.map(v => wantEs ? v.en : v.es).filter(v => v !== correct);
+
+  if (cfg.similarDistractors) {
+    const cLen = correct.length;
+    const similar = candidates.filter(v => Math.abs(v.length - cLen) / cLen < 0.4);
+    const rest    = candidates.filter(v => Math.abs(v.length - cLen) / cLen >= 0.4);
+    const p2 = [...similar.sort(() => Math.random()-0.5), ...rest.sort(() => Math.random()-0.5)];
+    return p2.slice(0, count);
+  }
+  return candidates.sort(() => Math.random()-0.5).slice(0, count);
+}
+
+// ─── SHIP ─────────────────────────────────────────────────────────────────────────
+function initShip() {
+  ship = { x: W/2, y: H - 50, w: 40, h: 30, spd: 12, recoilVx: 0 };
+}
+
+// Laser cooldown tracking — true while the laser is reloading
+let laserCooldownActive = false;
+
+// ─── ALIENS ──────────────────────────────────────────────────────────────────────
+const ALIEN_COLORS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f1c'];
+const ALIEN_EMOJIS = ['👾','🛸','🤖','👽','🔮','💀'];
+
+function measureLabel(label) {
+  ctx.font = 'bold 14px Courier New';
+  const lines = wrapLabel(label, 160);
+  const w = Math.max(...lines.map(l => ctx.measureText(l).width)) + 28;
+  const h = lines.length > 1 ? 62 : 50;
+  return { w: Math.max(w, 80), h };
+}
+
+function wrapLabel(label, maxPx) {
+  ctx.font = 'bold 14px Courier New';
+  const words = label.split(' ');
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width > maxPx && cur) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// Personality types: normal / zigzag / dodger / boss
+// Boss waves every 5 levels — one large alien on the correct answer only
+function spawnAlienWave() {
+  const cfg = DIFF[selectedDiff];
+  const q = newQuestion();
+  const isBossWave = level % 5 === 0 && level > 0;
+  const maxDistractors = Math.min(cfg.distractors + Math.floor(level/4), cfg.distractors);
+  const wrongAnswers = getWrongAnswers(q.answer, maxDistractors);
+  const allAnswers = [q.answer, ...wrongAnswers].sort(() => Math.random()-0.5);
+
+  const count = allAnswers.length;
+  const spacing = W / (count + 1);
+  const startY = -70;
+  const spd = cfg.baseSpd + level * cfg.spdPerLevel;
+
+  allAnswers.forEach((ans, i) => {
+    const isCorrect = ans === q.answer;
+    const isBoss = isBossWave && isCorrect;
+
+    // Assign personality: boss overrides; otherwise random
+    let personality = 'normal';
+    if (!isBoss) {
+      const r = Math.random();
+      if (r < 0.18) personality = 'zigzag';
+      else if (r < 0.32) personality = 'dodger';
+    }
+
+    const dims = measureLabel(ans);
+    const scale = isBoss ? 1.7 : 1;
+    aliens.push({
+      x: spacing * (i + 1),
+      y: startY - i * 18,
+      w: dims.w * scale, h: dims.h * scale,
+      label: ans,
+      isCorrect,
+      spd: isBoss ? spd * 0.7 : spd,
+      color: isBoss ? '#ff4466' : ALIEN_COLORS[i % ALIEN_COLORS.length],
+      emoji: isBoss ? '💀' : ALIEN_EMOJIS[i % ALIEN_EMOJIS.length],
+      hit: false,
+      wobble: Math.random() * Math.PI * 2,
+      personality,
+      hp: isBoss ? 2 : 1,     // boss takes 2 hits
+      isBoss,
+      // zigzag state
+      zigDir: Math.random() < 0.5 ? 1 : -1,
+      zigTimer: 0,
+      // dodger: stores last bullet proximity
+      dodgeVx: 0,
+      // taunt: shown briefly when correct alien escapes bottom
+      tauntText: null,
+      tauntLife: 0,
+    });
+  });
+
+  if (isBossWave) {
+    spawnFloater(`⚠ BOSS WAVE — LEVEL ${level}!`, W/2, H/2 - 60, '#ff4466', 2.5);
+  }
+}
+
+// ─── METEORS ─────────────────────────────────────────────────────────────────────
+// Meteors: falling rocks from the top. They don't carry vocab — they're pure hazards.
+// Shoot them for bonus points, or dodge them (they cost a life if they hit the ship).
+let meteorWarnActive = false;
+let meteorWarnTime = 0;
+
+function spawnMeteorWave() {
+  const count = 2 + Math.floor(level / 3);  // more at higher levels
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      if (state !== 'playing') return;
+      const size = 16 + Math.random() * 18;
+      meteors.push({
+        x: size + Math.random() * (W - size * 2),
+        y: -size,
+        size,
+        spd: 1.2 + Math.random() * 1.8 + level * 0.15,
+        vx: (Math.random() - 0.5) * 1.5,
+        rot: 0,
+        rotSpd: (Math.random() - 0.5) * 0.08,
+        hp: 1,
+        hit: false,
+        flashTime: 0,
+      });
+    }, i * 600);
+  }
+
+  // Show warning
+  meteorWarnActive = true;
+  meteorWarnTime = Date.now();
+  meteorWarn.style.display = 'block';
+  setTimeout(() => {
+    meteorWarn.style.display = 'none';
+    meteorWarnActive = false;
+  }, 2200);
+}
+
+// ─── PARTICLES ───────────────────────────────────────────────────────────────────
+function explode(x, y, color, count=14) {
+  for (let i=0; i<count; i++) {
+    const angle = (Math.PI*2/count)*i + Math.random()*0.5;
+    const spd = 2 + Math.random()*4;
+    particles.push({ x, y, vx: Math.cos(angle)*spd, vy: Math.sin(angle)*spd, life: 1, color, size: 3+Math.random()*4 });
+  }
+}
+
+function doFlash(color) {
+  flash.style.background = color;
+  flash.style.opacity = '0.35';
+  setTimeout(()=>{ flash.style.opacity='0'; }, 150);
+}
+
+// ─── FLOATERS (taunts / feedback text) ───────────────────────────────────────
+// Spawn a piece of text that floats upward and fades out
+function spawnFloater(text, x, y, color = '#fff', duration = 1.4) {
+  floaters.push({ text, x, y, color, life: 1, decay: 1 / (duration * 60), vy: -1.1 });
+}
+
+// ─── POWER-UPS ────────────────────────────────────────────────────────────────
+const POWERUP_TYPES = [
+  { type: 'shield', icon: '🛡️', color: '#4d96ff', label: 'SHIELD!' },
+  { type: 'slowmo', icon: '⏱️', color: '#c77dff', label: 'SLOW-MO!' },
+  { type: 'heart',  icon: '❤️', color: '#ff4466', label: '+1 LIFE!'  },
+];
+
+function spawnPowerup(x, y) {
+  const kind = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+  powerups.push({
+    x, y, vx: (Math.random()-0.5)*2, vy: 1.4 + Math.random(),
+    ...kind, size: 18, life: 1, wobble: Math.random()*Math.PI*2, hit: false,
+  });
+}
+
+// ─── SCREENSHAKE ─────────────────────────────────────────────────────────────
+function triggerShake(magnitude, duration = 300) {
+  shakeMag = magnitude;
+  shakeTime = Date.now() + duration;
+}
+
+// ─── DRAW ─────────────────────────────────────────────────────────────────────────
+function drawStars() {
+  if (!drawStars.stars) {
+    drawStars.stars = Array.from({length:80}, ()=>({ x:Math.random()*900, y:Math.random()*700, r:Math.random()*1.5, b:Math.random() }));
+  }
+  drawStars.stars.forEach(s => {
+    ctx.globalAlpha = 0.4 + 0.6*Math.abs(Math.sin(Date.now()/2000 + s.b*10));
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(s.x % W, s.y % H, s.r, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawShip() {
+  // BOMB DRAWBACK: visual shake while recoiling
+  const shakeX = (selectedCannon === 'bomb' && Math.abs(ship.recoilVx) > 1)
+    ? (Math.random() - 0.5) * Math.abs(ship.recoilVx) * 0.6 : 0;
+  const x = ship.x + shakeX, y = ship.y;
+  const cannonColor = CANNONS[selectedCannon].color;
+
+  // Shield ring
+  if (shieldActive) {
+    ctx.shadowColor = '#4d96ff';
+    ctx.shadowBlur = 20;
+    ctx.strokeStyle = '#4d96ff';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6 + Math.sin(Date.now()/200)*0.3;
+    ctx.beginPath();
+    ctx.arc(x, y, 34, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+
+  // Combo fire trail: particles streaking behind ship at high combo
+  if (combo >= 5) {
+    const trailColor = combo >= 8 ? '#ff4466' : '#c77dff';
+    ctx.shadowColor = trailColor;
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = trailColor + '88';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 22, 8 + combo*0.8, 22 + combo*1.2, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Engine glow (colour intensity scales with combo heat)
+  ctx.shadowColor = cannonColor;
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = cannonColor + '55';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 18, 12, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Main body
+  ctx.fillStyle = '#00ffcc';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 20);
+  ctx.lineTo(x - 18, y + 12);
+  ctx.lineTo(x + 18, y + 12);
+  ctx.closePath();
+  ctx.fill();
+
+  // Cannon barrel (coloured by selected cannon)
+  ctx.fillStyle = cannonColor;
+  ctx.fillRect(x - 3, y - 28, 6, 14);
+
+  // Wings
+  ctx.fillStyle = '#00ccaa';
+  ctx.beginPath();
+  ctx.moveTo(x - 18, y + 12); ctx.lineTo(x - 30, y + 20); ctx.lineTo(x - 10, y + 12);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + 18, y + 12); ctx.lineTo(x + 30, y + 20); ctx.lineTo(x + 10, y + 12);
+  ctx.closePath(); ctx.fill();
+
+  // Aim line
+  ctx.strokeStyle = 'rgba(0,255,204,0.18)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,6]);
+  ctx.beginPath(); ctx.moveTo(x, y - 28); ctx.lineTo(x, 0); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawAlien(a) {
+  a.wobble += 0.04;
+  const wx = Math.sin(a.wobble) * (a.personality === 'zigzag' ? 0 : 3);
+  const x = a.x + wx, y = a.y;
+
+  const isHurt = a.hurtTime && (Date.now() - a.hurtTime) < 180;
+  const glowColor = isHurt ? '#fff' : a.color;
+  const glowBlur  = isHurt ? 28 : (a.isBoss ? 22 : 14);
+
+  // Outer glow
+  ctx.shadowColor = glowColor;
+  ctx.shadowBlur = glowBlur;
+  ctx.fillStyle = a.color + '33';
+  ctx.beginPath();
+  ctx.ellipse(x, y, a.w/2+8, a.h/2+8, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Body
+  ctx.fillStyle = isHurt ? '#fff' : a.color + '55';
+  ctx.strokeStyle = a.color;
+  ctx.lineWidth = a.isBoss ? 3 : 2;
+  ctx.beginPath();
+  ctx.ellipse(x, y, a.w/2, a.h/2, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Boss HP pips
+  if (a.isBoss) {
+    for (let h = 0; h < a.hp; h++) {
+      ctx.fillStyle = '#ff4466';
+      ctx.beginPath();
+      ctx.arc(x - 6 + h*12, y - a.h/2 - 8, 4, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Personality badge
+  if (a.personality === 'zigzag') {
+    ctx.font = '11px serif'; ctx.textAlign = 'center';
+    ctx.fillText('〰', x, y - a.h/2 - 4);
+  } else if (a.personality === 'dodger') {
+    ctx.font = '11px serif'; ctx.textAlign = 'center';
+    ctx.fillText('👁', x, y - a.h/2 - 4);
+  }
+
+  ctx.font = (a.isBoss ? '20px' : '16px') + ' serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(a.emoji, x, y - a.h/2 + (a.isBoss ? 22 : 18));
+
+  const lines = wrapLabel(a.label, a.w - 16);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${a.isBoss ? 16 : 14}px Courier New`;
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 4;
+  if (lines.length === 1) {
+    ctx.fillText(lines[0], x, y + 6);
+  } else {
+    const lineH = 17;
+    const totalH = lines.length * lineH;
+    const startY = y - totalH/2 + lineH;
+    lines.forEach((ln, idx) => ctx.fillText(ln, x, startY + idx * lineH));
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawMeteor(m) {
+  m.rot += m.rotSpd;
+  const x = m.x, y = m.y, r = m.size;
+  const isFlashing = (Date.now() - m.flashTime) < 120;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(m.rot);
+
+  // Glow
+  ctx.shadowColor = isFlashing ? '#fff' : '#ff6400';
+  ctx.shadowBlur = isFlashing ? 30 : 12;
+
+  ctx.fillStyle = isFlashing ? '#ffaa44' : '#cc4400';
+  ctx.beginPath();
+  // Irregular polygon for rock look
+  const pts = 7;
+  for (let i = 0; i < pts; i++) {
+    const angle = (i / pts) * Math.PI * 2;
+    const rad = r * (0.7 + 0.3 * Math.abs(Math.sin(i * 2.3 + m.wobble || 0)));
+    if (i === 0) ctx.moveTo(Math.cos(angle)*rad, Math.sin(angle)*rad);
+    else ctx.lineTo(Math.cos(angle)*rad, Math.sin(angle)*rad);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Dark crater details
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.arc(r*0.2, -r*0.1, r*0.22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(-r*0.3, r*0.25, r*0.14, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // Trail
+  ctx.globalAlpha = 0.3;
+  const grad = ctx.createLinearGradient(x, y - r, x, y - r*3.5);
+  grad.addColorStop(0, '#ff6400');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(x, y - r*1.8, r*0.35, r*1.5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // ☄️ label
+  ctx.font = '11px Courier New';
+  ctx.fillStyle = '#ff9966';
+  ctx.textAlign = 'center';
+  ctx.fillText('☄️', x, y + r + 14);
+}
+
+function drawPowerup(p) {
+  p.wobble += 0.06;
+  const bob = Math.sin(p.wobble) * 4;
+  ctx.shadowColor = p.color;
+  ctx.shadowBlur = 16;
+  ctx.globalAlpha = p.life;
+  ctx.font = '22px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(p.icon, p.x, p.y + bob);
+  // Pulsing ring
+  ctx.strokeStyle = p.color;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = p.life * 0.5;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y + bob, 18 + Math.sin(p.wobble*2)*4, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
+function drawFloaters() {
+  floaters.forEach(f => {
+    ctx.globalAlpha = f.life;
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 16px Courier New';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = f.color;
+    ctx.shadowBlur = 8;
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.shadowBlur = 0;
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawBullet(b) {
+  const cannonColor = CANNONS[selectedCannon].color;
+
+  if (b.type === 'laser') {
+    ctx.shadowColor = '#c77dff';
+    ctx.shadowBlur = 16;
+    ctx.strokeStyle = '#c77dff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y + 30);
+    ctx.stroke();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(b.x, b.y + 30);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  } else if (b.type === 'bomb') {
+    ctx.shadowColor = '#ff4466';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ff4466';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.w, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(b.x - 2, b.y - 3, b.w * 0.35, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.shadowColor = cannonColor;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = cannonColor;
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, b.w, b.h, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawHUD() {
+  ctx.fillStyle = '#00ffcc';
+  ctx.font = 'bold 16px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(`SCORE: ${score}`, 12, 24);
+
+  ctx.fillStyle = '#ffd700';
+  ctx.textAlign = 'center';
+  ctx.fillText(`LEVEL ${level}`, W/2, 24);
+
+  ctx.fillStyle = '#7affdf';
+  ctx.textAlign = 'right';
+  ctx.fillText(`HI: ${highScore}`, W-12, 24);
+
+  for (let i=0; i<lives; i++) {
+    ctx.fillStyle = '#ff4466';
+    ctx.font = '18px serif';
+    ctx.fillText('♥', W-12 - i*24, 48);
+  }
+
+  const prompt = currentQ ? currentQ.prompt : '';
+  ctx.font = 'bold 19px Courier New';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(`➤  ${prompt}`, W/2, H - 18);
+  ctx.shadowBlur = 0;
+
+  if (combo >= 3) {
+    // Heat colour escalates: x3 orange, x5 purple, x8+ red
+    const heatColor = combo >= 8 ? '#ff4466' : combo >= 5 ? '#c77dff' : '#ffd700';
+    const heatLabel = combo >= 8 ? `🔥🔥 INFERNO x${combo}` : combo >= 5 ? `💜 SUPERCOMBO x${combo}` : `🔥 COMBO x${combo}`;
+    ctx.fillStyle = heatColor;
+    ctx.font = `bold ${12 + Math.min(combo,10)}px Courier New`;
+    ctx.textAlign = 'left';
+    ctx.shadowColor = heatColor;
+    ctx.shadowBlur = 12;
+    ctx.fillText(heatLabel, 12, 48);
+    ctx.shadowBlur = 0;
+
+    // Subtle screen tint at high combo
+    if (combo >= 5) {
+      const tintAlpha = Math.min((combo - 4) * 0.018, 0.12);
+      const tintRgb = combo >= 8 ? '255,68,102' : '199,125,255';
+      ctx.fillStyle = `rgba(${tintRgb},${tintAlpha})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // Active power-up status icons top-left (below score)
+  let statusY = 64;
+  if (shieldActive) {
+    ctx.font = '14px serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#4d96ff'; ctx.shadowColor = '#4d96ff'; ctx.shadowBlur = 8;
+    ctx.fillText('🛡️ SHIELD', 12, statusY); statusY += 18;
+    ctx.shadowBlur = 0;
+  }
+  if (slowmoActive) {
+    const rem = Math.max(0, (slowmoEndTime - Date.now())/1000).toFixed(1);
+    ctx.font = '14px serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#c77dff'; ctx.shadowColor = '#c77dff'; ctx.shadowBlur = 8;
+    ctx.fillText(`⏱️ SLOW-MO ${rem}s`, 12, statusY);
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.fillStyle = DIFF[selectedDiff].color;
+  ctx.font = 'bold 11px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(DIFF[selectedDiff].label, 12, H - 18);
+
+  // Cannon indicator bottom right + active drawback warnings
+  const cannonColor = CANNONS[selectedCannon].color;
+  ctx.fillStyle = cannonColor;
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 11px Courier New';
+  ctx.fillText(CANNONS[selectedCannon].label, W-12, H - 18);
+
+  // LASER: show reload bar so player knows when the speed-up is active
+  if (selectedCannon === 'laser') {
+    const now = Date.now();
+    const elapsed = now - lastFireTime;
+    const reload = CANNONS.laser.reload;
+    const frac = Math.min(elapsed / reload, 1);
+    const barW = 120;
+    const bx = W/2 - barW/2;
+    const by = H - 38;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(bx, by, barW, 7);
+    ctx.fillStyle = frac < 1 ? '#ff4466' : '#c77dff';
+    ctx.fillRect(bx, by, barW * frac, 7);
+    ctx.strokeStyle = '#c77dff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, barW, 7);
+    if (frac < 1) {
+      ctx.fillStyle = '#ff4466';
+      ctx.font = 'bold 10px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚡ RELOADING — ALIENS FASTER', W/2, by - 4);
+    }
+  }
+
+  // BOMB: show recoil warning while active
+  if (selectedCannon === 'bomb' && Math.abs(ship.recoilVx) > 1) {
+    ctx.fillStyle = '#ff4466';
+    ctx.font = 'bold 11px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('💣 RECOIL!', W/2, H - 38);
+  }
+}
+
+// ─── UPDATE ──────────────────────────────────────────────────────────────────────
+function update(dt) {
+  const speedMult = slowmoActive ? 0.35 : 1;
+
+  // Ship movement
+  if (keys['ArrowLeft'] || keys['KeyA']) ship.x = Math.max(20, ship.x - ship.spd);
+  if (keys['ArrowRight'] || keys['KeyD']) ship.x = Math.min(W-20, ship.x + ship.spd);
+
+  // BOMB DRAWBACK: recoil
+  if (ship.recoilVx) {
+    ship.x = Math.max(20, Math.min(W - 20, ship.x + ship.recoilVx));
+    ship.recoilVx *= 0.82;
+    if (Math.abs(ship.recoilVx) < 0.3) ship.recoilVx = 0;
+  }
+
+  // Slow-mo timer
+  if (slowmoActive && Date.now() > slowmoEndTime) {
+    slowmoActive = false;
+    spawnFloater('SLOW-MO ENDED', W/2, H/2, '#c77dff', 1.2);
+  }
+
+  // Move bullets
+  bullets.forEach(b => {
+    if (b.vx !== undefined) {
+      b.x += b.vx * (dt/16) * speedMult;
+      b.y += b.vy * (dt/16) * speedMult;
+    } else {
+      b.y -= b.spd * speedMult;
+    }
+  });
+  bullets = bullets.filter(b => b.y > -30 && b.x > -30 && b.x < W+30);
+
+  // ── Alien personality movement ────────────────────────────────────────────
+  const alienSpeedMult = (selectedCannon === 'laser' && laserCooldownActive) ? 2.2 : 1;
+  aliens.forEach(a => {
+    a.y += a.spd * alienSpeedMult * speedMult;
+
+    if (a.personality === 'zigzag') {
+      a.zigTimer += dt;
+      if (a.zigTimer > 600) { a.zigDir *= -1; a.zigTimer = 0; }
+      a.x = Math.max(a.w/2+5, Math.min(W - a.w/2 - 5, a.x + a.zigDir * 2.2));
+    }
+
+    if (a.personality === 'dodger') {
+      let closestDist = 999, dodgeDir = 0;
+      bullets.forEach(b => {
+        if (!b.active) return;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        if (dy < 0 && dy > -200) {
+          const d = Math.abs(dx);
+          if (d < closestDist) { closestDist = d; dodgeDir = dx < 0 ? 1 : -1; }
+        }
+      });
+      if (closestDist < 80) a.dodgeVx = dodgeDir * 3.5;
+      else a.dodgeVx *= 0.88;
+      a.x = Math.max(a.w/2+5, Math.min(W - a.w/2 - 5, a.x + a.dodgeVx));
+    }
+  });
+
+  // ── Bullet vs Alien collisions ────────────────────────────────────────────
+  bullets.forEach(b => {
+    if (!b.active) return;
+    aliens.forEach(a => {
+      if (a.hit) return;
+      const hit = b.type === 'bomb'
+        ? Math.hypot(b.x - a.x, b.y - a.y) < b.explodeRadius
+        : (Math.abs(b.x - a.x) < a.w/2 && Math.abs(b.y - a.y) < a.h/2);
+      if (!hit) return;
+      if (!b.piercing) b.active = false;
+
+      if (a.isCorrect) {
+        a.hp--;
+        if (a.hp > 0) {
+          a.hurtTime = Date.now();
+          spawnFloater('BOSS HIT! ONE MORE!', a.x, a.y - 30, '#ff4466', 1.2);
+          return;
+        }
+        a.hit = true;
+        combo++;
+        const bonus = combo >= 3 ? 5 : 0;
+        const bossBonus = a.isBoss ? 30 : 0;
+        score += 10 + bonus + level + bossBonus;
+        explode(a.x, a.y, '#00ffcc', a.isBoss ? 30 : 18);
+        doFlash('#00ffcc');
+        if (combo >= 8) triggerShake(6, 350);
+        else if (combo >= 5) triggerShake(3, 200);
+        if (a.isBoss) {
+          spawnFloater('💀 BOSS DOWN! +30', a.x, a.y - 40, '#ffd700', 2);
+          triggerShake(10, 500);
+        }
+        aliens.forEach(o => { if (!o.isCorrect) o.hit = true; });
+        setTimeout(() => spawnAlienWave(), 400);
+      } else {
+        a.hurtTime = Date.now();
+        combo = 0;
+        lives--;
+        spawnFloater('¡NO! −1 ❤️', a.x, a.y - 24, '#ff4466', 1.4);
+        explode(a.x, a.y, '#ff4466', 12);
+        doFlash('#ff4466');
+        triggerShake(5, 250);
+        setTimeout(() => { a.hit = true; }, 180);
+        if (lives <= 0) endGame();
+      }
+    });
+  });
+  bullets = bullets.filter(b => b.active);
+
+  // ── Aliens reach bottom ───────────────────────────────────────────────────
+  aliens.forEach(a => {
+    if (!a.hit && a.y > H + 40) {
+      if (a.isCorrect) {
+        a.hit = true;
+        combo = 0;
+        const taunts = ['¡Ja ja ja!', '¡Hasta luego!', '¡Adiós!', '¿Lo sabías?', '¡Escapé!'];
+        const t = taunts[Math.floor(Math.random()*taunts.length)];
+        spawnFloater(`${t}  →  "${a.label}"`, W/2, H/2 - 20, '#ff9966', 2.8);
+        doFlash('#ff4466');
+        triggerShake(4, 200);
+        if (shieldActive) {
+          shieldActive = false;
+          spawnFloater('🛡️ SHIELD ABSORBED IT!', W/2, H/2 + 20, '#4d96ff', 1.8);
+        } else {
+          lives--;
+          aliens.forEach(o => { if (!o.isCorrect) o.hit = true; });
+          if (lives <= 0) { endGame(); return; }
+        }
+        setTimeout(() => spawnAlienWave(), 400);
+      } else {
+        a.hit = true;
+      }
+    }
+  });
+  aliens = aliens.filter(a => !a.hit);
+
+  // ── Meteors ───────────────────────────────────────────────────────────────
+  meteorTimer += dt;
+  const spawnEvery = Math.max(7000, meteorInterval - level * 800);
+  if (meteorTimer > spawnEvery) { meteorTimer = 0; spawnMeteorWave(); }
+
+  meteors.forEach(m => {
+    m.x += m.vx * speedMult;
+    m.y += m.spd * speedMult;
+    if (m.x < m.size) { m.x = m.size; m.vx = Math.abs(m.vx); }
+    if (m.x > W - m.size) { m.x = W - m.size; m.vx = -Math.abs(m.vx); }
+  });
+
+  bullets.forEach(b => {
+    if (!b.active) return;
+    meteors.forEach(m => {
+      if (m.hit) return;
+      const dist = Math.hypot(b.x - m.x, b.y - m.y);
+      const hitRadius = b.type === 'bomb' ? b.explodeRadius : m.size;
+      if (dist < hitRadius) {
+        if (!b.piercing) b.active = false;
+        m.hit = true;
+        score += 5;
+        explode(m.x, m.y, '#ff6400', 10);
+        if (Math.random() < 0.4) spawnPowerup(m.x, m.y);
+      }
+    });
+  });
+
+  meteors.forEach(m => {
+    if (m.hit) return;
+    const dist = Math.hypot(ship.x - m.x, ship.y - m.y);
+    if (dist < m.size + 16) {
+      m.hit = true;
+      explode(m.x, m.y, '#ff6400', 20);
+      doFlash('#ff6400');
+      triggerShake(7, 300);
+      if (shieldActive) {
+        shieldActive = false;
+        spawnFloater('🛡️ SHIELD BLOCKED IT!', W/2, ship.y - 40, '#4d96ff', 1.8);
+      } else {
+        lives--;
+        if (lives <= 0) endGame();
+      }
+    }
+  });
+  meteors = meteors.filter(m => !m.hit && m.y < H + 60);
+
+  // ── Power-up movement & collection ───────────────────────────────────────
+  powerups.forEach(p => {
+    p.x += p.vx * speedMult;
+    p.y += p.vy * speedMult;
+    p.wobble += 0.06;
+    p.life -= 0.003;
+    if (p.hit) return;
+    const dist = Math.hypot(ship.x - p.x, ship.y - p.y);
+    if (dist < 28) {
+      p.hit = true;
+      spawnFloater(p.label, p.x, p.y - 20, p.color, 1.6);
+      explode(p.x, p.y, p.color, 10);
+      if (p.type === 'shield') shieldActive = true;
+      if (p.type === 'slowmo') { slowmoActive = true; slowmoEndTime = Date.now() + 3000; }
+      if (p.type === 'heart')  lives = Math.min(lives + 1, DIFF[selectedDiff].lives + 1);
+    }
+  });
+  powerups = powerups.filter(p => !p.hit && p.life > 0 && p.y < H + 40);
+
+  // ── Floater decay ─────────────────────────────────────────────────────────
+  floaters.forEach(f => { f.y += f.vy; f.life -= f.decay; });
+  floaters = floaters.filter(f => f.life > 0);
+
+  // Level up
+  const nextLevel = Math.floor(score / DIFF[selectedDiff].levelThresh) + 1;
+  if (nextLevel > level) {
+    level = nextLevel;
+    spawnFloater(`⬆ LEVEL ${level}!`, W/2, H/2 - 80, '#ffd700', 1.8);
+  }
+
+  // Particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.1;
+    p.life -= 0.035;
+  });
+  particles = particles.filter(p => p.life > 0);
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ─── LOOP ─────────────────────────────────────────────────────────────────────────
+let lastTime = 0;
+function loop(ts) {
+  const dt = ts - lastTime; lastTime = ts;
+  if (state === 'playing') {
+    ctx.clearRect(0,0,W,H);
+
+    // Screenshake transform
+    const nowShake = Date.now();
+    const shaking = nowShake < shakeTime;
+    if (shaking) {
+      const mag = shakeMag * ((shakeTime - nowShake) / 300);
+      ctx.save();
+      ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
+    }
+
+    drawStars();
+    drawShip();
+    meteors.forEach(drawMeteor);
+    powerups.forEach(drawPowerup);
+    aliens.forEach(drawAlien);
+    bullets.forEach(drawBullet);
+    drawParticles();
+    drawFloaters();
+    drawHUD();
+
+    if (shaking) ctx.restore();
+
+    update(dt);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ─── GAME CONTROL ─────────────────────────────────────────────────────────────────
+function startGame() {
+  const cfg = DIFF[selectedDiff];
+  score = 0; lives = cfg.lives; level = 1; combo = 0;
+  aliens = []; bullets = []; particles = []; meteors = [];
+  powerups = []; floaters = [];
+  meteorTimer = 0;
+  lastFireTime = 0;
+  laserCooldownActive = false;
+  shieldActive = false;
+  slowmoActive = false;
+  shakeTime = 0; shakeMag = 0;
+  buildPool();
+  initShip();
+  spawnAlienWave();
+  state = 'playing';
+  document.getElementById('menu-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+}
+
+function endGame() {
+  state = 'gameover';
+  meteorWarn.style.display = 'none';
+  highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+  scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
+  const isNewHS = score > highScore;
+  if (isNewHS) { highScore = score; localStorage.setItem(HS_KEY(selectedDiff), highScore); }
+
+  scoreHistory.unshift({ score, level, date: new Date().toLocaleDateString('en-AU'), cannon: selectedCannon });
+  if (scoreHistory.length > 8) scoreHistory = scoreHistory.slice(0,8);
+  localStorage.setItem(SH_KEY(selectedDiff), JSON.stringify(scoreHistory));
+
+  document.getElementById('final-score').textContent = `SCORE: ${score}`;
+  document.getElementById('final-level').textContent = `Reached Level ${level}`;
+  document.getElementById('final-diff').textContent  = DIFF[selectedDiff].label;
+  document.getElementById('final-cannon').textContent = CANNONS[selectedCannon].label;
+  document.getElementById('new-hs').style.display = isNewHS ? 'block' : 'none';
+  renderHistory('score-history-go');
+  document.getElementById('gameover-screen').classList.remove('hidden');
+}
+
+function renderHistory(id) {
+  const el = document.getElementById(id);
+  if (!scoreHistory.length) { el.textContent = ''; return; }
+  el.innerHTML = '<span style="color:#aaa">— SCORE HISTORY —</span><br>' +
+    scoreHistory.map((s,i) => {
+      const cannonLabel = s.cannon ? ` &nbsp; ${CANNONS[s.cannon] ? CANNONS[s.cannon].label : s.cannon}` : '';
+      return `${i+1}. ${s.date} &nbsp; Score: ${s.score} &nbsp; Lv ${s.level}${cannonLabel}`;
+    }).join('<br>');
+}
+
+function showMenu() {
+  state = 'menu';
+  meteorWarn.style.display = 'none';
+  highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
+  scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
+  document.getElementById('highscore-display').textContent = `🏆 HIGH SCORE: ${highScore}`;
+  renderHistory('score-history');
+  updateDiffDesc();
+  document.getElementById('menu-screen').classList.remove('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('play-again-btn').addEventListener('click', startGame);
+document.getElementById('menu-btn').addEventListener('click', showMenu);
+
+// Mobile touch
+let touchX = null;
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  touchX = e.touches[0].clientX;
+  tryFire();
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const dx = e.touches[0].clientX - touchX;
+  ship.x = Math.max(20, Math.min(W-20, ship.x + dx));
+  touchX = e.touches[0].clientX;
+}, {passive:false});
+
+showMenu();
+</script>
+</body>
+</html>
