@@ -49,6 +49,29 @@
   .cannon-desc { font-size: 0.65rem; color: inherit; opacity: 0.7; display: block; margin-top: 0.2rem; }
   .cannon-neg  { font-size: 0.62rem; color: #ff8888; display: block; margin-top: 0.25rem; opacity: 0.85; }
 
+  /* Ship selector — mirrors cannon-grid */
+  .ship-grid { display: flex; gap: 0.8rem; justify-content: center; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .ship-card {
+    border: 2px solid #444; padding: 0.6rem 1rem; cursor: pointer;
+    text-align: center; min-width: 120px; transition: all 0.2s;
+    font-family: 'Courier New', monospace; background: transparent; color: #aaa;
+  }
+  .ship-card.active { border-color: #00ffcc; color: #00ffcc; background: rgba(0,255,204,0.08); box-shadow: 0 0 12px rgba(0,255,204,0.3); }
+  .ship-card:hover  { border-color: #7affdf; color: #7affdf; }
+  .ship-icon  { font-size: 1.6rem; display: block; margin-bottom: 0.3rem; }
+  .ship-name  { font-size: 0.75rem; letter-spacing: 1px; font-weight: bold; display: block; }
+  .ship-stats { font-size: 0.62rem; color: inherit; opacity: 0.7; display: block; margin-top: 0.2rem; }
+  .ship-neg   { font-size: 0.62rem; color: #ff8888; display: block; margin-top: 0.25rem; opacity: 0.85; }
+
+  /* Energy wall warning */
+  #wall-warn {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,200,255,0.85); color: #0a0a1a;
+    font-family: 'Courier New', monospace; font-size: 0.9rem; font-weight: bold;
+    padding: 0.4rem 1.2rem; border: 2px solid #00ccff;
+    pointer-events: none; z-index: 15; display: none; letter-spacing: 2px;
+  }
+
   #flash { position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: 0; transition: opacity 0.1s; }
 
   /* Meteor warning */
@@ -118,9 +141,37 @@
     </div>
   </div>
 
+  <p style="color:#aaa; font-size:0.85rem; margin-bottom:0.6rem; letter-spacing:1px;">SELECT YOUR SHIP:</p>
+  <div class="ship-grid">
+    <div class="ship-card active" data-ship="fighter">
+      <span class="ship-icon">🚀</span>
+      <span class="ship-name">FIGHTER</span>
+      <span class="ship-stats">Balanced · normal speed</span>
+      <span class="ship-neg">No bonus, no penalty</span>
+    </div>
+    <div class="ship-card" data-ship="speeder">
+      <span class="ship-icon">⚡</span>
+      <span class="ship-name">SPEEDER</span>
+      <span class="ship-stats">1.7× speed · tiny hitbox</span>
+      <span class="ship-neg">⚠ Bullets half-size · 1 life less</span>
+    </div>
+    <div class="ship-card" data-ship="tank">
+      <span class="ship-icon">🛡️</span>
+      <span class="ship-name">TANK</span>
+      <span class="ship-stats">Double HP · absorbs 1 meteor</span>
+      <span class="ship-neg">⚠ 0.5× speed · wide hitbox</span>
+    </div>
+    <div class="ship-card" data-ship="ghost">
+      <span class="ship-icon">👻</span>
+      <span class="ship-name">GHOST</span>
+      <span class="ship-stats">Passes through walls</span>
+      <span class="ship-neg">⚠ 1 life only · no shield drops</span>
+    </div>
+  </div>
+
   <div id="score-history"></div>
   <button class="btn" id="start-btn" style="font-size:1.2rem; padding:0.9rem 3rem;">▶ START GAME</button>
-  <p style="color:#555; font-size:0.75rem; margin-top:1rem;">← → to move &nbsp;|&nbsp; SPACE to fire &nbsp;|&nbsp; ☄️ Dodge meteors!</p>
+  <p style="color:#555; font-size:0.75rem; margin-top:1rem;">← → to move &nbsp;|&nbsp; SPACE to fire &nbsp;|&nbsp; ☄️ Dodge meteors &amp; walls!</p>
 </div>
 
 <!-- GAME OVER -->
@@ -139,6 +190,7 @@
 <!-- FLASH / METEOR WARN -->
 <div id="flash"></div>
 <div id="meteor-warn">☄️ METEOR INCOMING!</div>
+<div id="wall-warn">⚡ ENERGY WALL — DODGE!</div>
 <canvas id="canvas"></canvas>
 
 <script>
@@ -430,11 +482,95 @@ const CANNONS = {
   }
 };
 
-// ─── GAME STATE ──────────────────────────────────────────────────────────────────
+// ─── SHIP CONFIGS ─────────────────────────────────────────────────────────────
+// Each ship has visible tradeoffs affecting speed, hitbox, starting lives, and special rules.
+const SHIPS = {
+  fighter: {
+    label: '🚀 FIGHTER', color: '#00ffcc',
+    spd: 12, hitbox: 16, lifeBonus: 0,
+    bulletScale: 1, wallImmune: false, meteorAbsorb: false, noShieldDrop: false,
+    draw(ctx, x, y, cannonColor) {
+      ctx.fillStyle = '#00ffcc';
+      ctx.beginPath(); ctx.moveTo(x, y-20); ctx.lineTo(x-18, y+12); ctx.lineTo(x+18, y+12); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = cannonColor; ctx.fillRect(x-3, y-28, 6, 14);
+      ctx.fillStyle = '#00ccaa';
+      ctx.beginPath(); ctx.moveTo(x-18,y+12); ctx.lineTo(x-30,y+20); ctx.lineTo(x-10,y+12); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x+18,y+12); ctx.lineTo(x+30,y+20); ctx.lineTo(x+10,y+12); ctx.closePath(); ctx.fill();
+    }
+  },
+  speeder: {
+    label: '⚡ SPEEDER', color: '#ffd700',
+    spd: 20, hitbox: 9, lifeBonus: -1,
+    bulletScale: 0.5, wallImmune: false, meteorAbsorb: false, noShieldDrop: false,
+    draw(ctx, x, y, cannonColor) {
+      // Sleek narrow wedge
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath(); ctx.moveTo(x, y-26); ctx.lineTo(x-10, y+14); ctx.lineTo(x+10, y+14); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = cannonColor; ctx.fillRect(x-2, y-34, 4, 12);
+      // Swept-back short wings
+      ctx.fillStyle = '#ccaa00';
+      ctx.beginPath(); ctx.moveTo(x-10,y+4); ctx.lineTo(x-24,y+18); ctx.lineTo(x-6,y+10); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x+10,y+4); ctx.lineTo(x+24,y+18); ctx.lineTo(x+6,y+10); ctx.closePath(); ctx.fill();
+      // Speed glow streak
+      ctx.globalAlpha = 0.3; ctx.fillStyle = '#ffd700';
+      ctx.fillRect(x-4, y+14, 8, 18); ctx.globalAlpha = 1;
+    }
+  },
+  tank: {
+    label: '🛡️ TANK', color: '#6bcb77',
+    spd: 6, hitbox: 26, lifeBonus: 2,
+    bulletScale: 1, wallImmune: false, meteorAbsorb: true, noShieldDrop: false,
+    draw(ctx, x, y, cannonColor) {
+      // Wide boxy hull
+      ctx.fillStyle = '#3a8a4a';
+      ctx.fillRect(x-24, y-10, 48, 26);
+      ctx.fillStyle = '#6bcb77';
+      ctx.fillRect(x-18, y-18, 36, 12);
+      // Heavy cannon
+      ctx.fillStyle = cannonColor; ctx.fillRect(x-4, y-32, 8, 18);
+      // Armour plates
+      ctx.strokeStyle = '#2a6a3a'; ctx.lineWidth = 2;
+      ctx.strokeRect(x-24, y-10, 48, 26);
+      ctx.strokeRect(x-18, y-18, 36, 12);
+      // Side shields
+      ctx.fillStyle = '#4aaa5a';
+      ctx.fillRect(x-32, y-4, 8, 14);
+      ctx.fillRect(x+24, y-4, 8, 14);
+    }
+  },
+  ghost: {
+    label: '👻 GHOST', color: '#c77dff',
+    spd: 14, hitbox: 14, lifeBonus: -99, // set to 1 life in startGame
+    bulletScale: 1, wallImmune: true, meteorAbsorb: false, noShieldDrop: true,
+    draw(ctx, x, y, cannonColor) {
+      const t = Date.now();
+      ctx.globalAlpha = 0.55 + Math.sin(t/400)*0.2;
+      // Ghost body
+      ctx.fillStyle = '#c77dff';
+      ctx.beginPath();
+      ctx.arc(x, y-6, 16, Math.PI, 0);
+      ctx.lineTo(x+16, y+14);
+      // Wavy bottom
+      for(let i=0;i<4;i++){
+        const wx = x+16 - i*8;
+        ctx.quadraticCurveTo(wx-4, y+20, wx-8, y+14);
+      }
+      ctx.closePath(); ctx.fill();
+      // Eyes
+      ctx.fillStyle = '#0a0a1a'; ctx.globalAlpha = 0.85;
+      ctx.beginPath(); ctx.arc(x-5, y-8, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+5, y-8, 3, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = cannonColor; ctx.globalAlpha = 0.7;
+      ctx.fillRect(x-2, y-30, 4, 14);
+      ctx.globalAlpha = 1;
+    }
+  },
+};
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const flash = document.getElementById('flash');
 const meteorWarn = document.getElementById('meteor-warn');
+const wallWarn   = document.getElementById('wall-warn');
 
 let W, H;
 function resize() {
@@ -447,12 +583,15 @@ window.addEventListener('resize', resize);
 let state = 'menu';
 let score, lives, level, combo;
 let aliens = [], bullets = [], particles = [], meteors = [];
-let powerups = [];      // ⚡ shield / slowmo / heart drops from meteors
-let floaters = [];      // 💬 taunts & feedback text floating on screen
+let powerups = [];
+let floaters = [];
+let walls = [];        // ⚡ indestructible energy walls — dodge only
+let wallTimer = 0;
 let ship;
 let currentQ, pool;
-let selectedDiff = 'beginner';
+let selectedDiff   = 'beginner';
 let selectedCannon = 'standard';
+let selectedShip   = 'fighter';
 let lastFireTime = 0;
 let meteorTimer = 0;
 let meteorInterval = 18000;
@@ -525,8 +664,17 @@ function tryFire() {
   const reload = CANNONS[selectedCannon].reload;
   if (now - lastFireTime < reload) return;
   lastFireTime = now;
+  const before = bullets.length;
   CANNONS[selectedCannon].fire(ship, bullets);
-
+  // Speeder ship: half-size bullets (smaller hitbox, harder to score)
+  const bScale = SHIPS[selectedShip].bulletScale;
+  if (bScale !== 1) {
+    for (let i = before; i < bullets.length; i++) {
+      if (bullets[i].w) bullets[i].w *= bScale;
+      if (bullets[i].h) bullets[i].h *= bScale;
+      if (bullets[i].explodeRadius) bullets[i].explodeRadius *= bScale;
+    }
+  }
   // Laser drawback: flag cooldown so update() can speed up aliens
   if (selectedCannon === 'laser') {
     laserCooldownActive = true;
@@ -563,6 +711,15 @@ document.querySelectorAll('.cannon-card').forEach(card => {
     document.querySelectorAll('.cannon-card').forEach(c => c.classList.remove('active'));
     card.classList.add('active');
     selectedCannon = card.dataset.cannon;
+  });
+});
+
+// ─── SHIP TOGGLES ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.ship-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.ship-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    selectedShip = card.dataset.ship;
   });
 });
 
@@ -625,7 +782,8 @@ function getWrongAnswers(correct, count) {
 
 // ─── SHIP ─────────────────────────────────────────────────────────────────────────
 function initShip() {
-  ship = { x: W/2, y: H - 50, w: 40, h: 30, spd: 12, recoilVx: 0 };
+  const sc = SHIPS[selectedShip];
+  ship = { x: W/2, y: H - 50, w: 40, h: 30, spd: sc.spd, hitbox: sc.hitbox, recoilVx: 0 };
 }
 
 // Laser cooldown tracking — true while the laser is reloading
@@ -662,12 +820,18 @@ function wrapLabel(label, maxPx) {
 }
 
 // Personality types: normal / zigzag / dodger / boss
-// Boss waves every 5 levels — one large alien on the correct answer only
+// Boss waves every 5 levels.
+// BOSS DIFFICULTY: all aliens look identical — same colour, same size, same emoji.
+// The correct alien still takes 2 hits, but you can't identify it visually.
+// Boss waves also spawn extra distractors.
 function spawnAlienWave() {
   const cfg = DIFF[selectedDiff];
   const q = newQuestion();
   const isBossWave = level % 5 === 0 && level > 0;
-  const maxDistractors = Math.min(cfg.distractors + Math.floor(level/4), cfg.distractors);
+
+  // Boss waves get extra distractors (up to +3)
+  const extraDistractors = isBossWave ? Math.min(3, 8 - cfg.distractors) : 0;
+  const maxDistractors = Math.min(cfg.distractors + extraDistractors + Math.floor(level/4), cfg.distractors + extraDistractors);
   const wrongAnswers = getWrongAnswers(q.answer, maxDistractors);
   const allAnswers = [q.answer, ...wrongAnswers].sort(() => Math.random()-0.5);
 
@@ -676,47 +840,51 @@ function spawnAlienWave() {
   const startY = -70;
   const spd = cfg.baseSpd + level * cfg.spdPerLevel;
 
+  // On boss waves: uniform disguise — all aliens share one colour and emoji
+  // so the correct answer is not visually obvious.
+  const bossDisguiseColor = '#6622aa';
+  const bossDisguiseEmoji = '🔮';
+
   allAnswers.forEach((ans, i) => {
     const isCorrect = ans === q.answer;
-    const isBoss = isBossWave && isCorrect;
+    const isBoss    = isBossWave && isCorrect;
 
-    // Assign personality: boss overrides; otherwise random
     let personality = 'normal';
-    if (!isBoss) {
+    if (isBossWave) {
+      // All distractors zigzag during boss wave; correct is a dodger
+      personality = isCorrect ? 'dodger' : (Math.random() < 0.6 ? 'zigzag' : 'dodger');
+    } else {
       const r = Math.random();
       if (r < 0.18) personality = 'zigzag';
       else if (r < 0.32) personality = 'dodger';
     }
 
     const dims = measureLabel(ans);
-    const scale = isBoss ? 1.7 : 1;
     aliens.push({
       x: spacing * (i + 1),
       y: startY - i * 18,
-      w: dims.w * scale, h: dims.h * scale,
+      w: dims.w, h: dims.h,   // same size for all on boss wave
       label: ans,
       isCorrect,
-      spd: isBoss ? spd * 0.7 : spd,
-      color: isBoss ? '#ff4466' : ALIEN_COLORS[i % ALIEN_COLORS.length],
-      emoji: isBoss ? '💀' : ALIEN_EMOJIS[i % ALIEN_EMOJIS.length],
+      spd: isBossWave ? spd * 1.15 : spd,  // boss wave is faster
+      // Disguise: on boss waves everyone looks the same
+      color: isBossWave ? bossDisguiseColor : ALIEN_COLORS[i % ALIEN_COLORS.length],
+      emoji: isBossWave ? bossDisguiseEmoji : ALIEN_EMOJIS[i % ALIEN_EMOJIS.length],
       hit: false,
       wobble: Math.random() * Math.PI * 2,
       personality,
-      hp: isBoss ? 2 : 1,     // boss takes 2 hits
+      hp: isBoss ? 3 : 1,   // boss takes 3 hits now
       isBoss,
-      // zigzag state
       zigDir: Math.random() < 0.5 ? 1 : -1,
       zigTimer: 0,
-      // dodger: stores last bullet proximity
       dodgeVx: 0,
-      // taunt: shown briefly when correct alien escapes bottom
       tauntText: null,
       tauntLife: 0,
     });
   });
 
   if (isBossWave) {
-    spawnFloater(`⚠ BOSS WAVE — LEVEL ${level}!`, W/2, H/2 - 60, '#ff4466', 2.5);
+    spawnFloater(`⚠ BOSS WAVE — READ THE LABELS!`, W/2, H/2 - 60, '#ff4466', 2.5);
   }
 }
 
@@ -757,7 +925,75 @@ function spawnMeteorWave() {
   }, 2200);
 }
 
-// ─── PARTICLES ───────────────────────────────────────────────────────────────────
+// ─── ENERGY WALLS ────────────────────────────────────────────────────────────────
+// Horizontal bars that sweep across the screen from one side.
+// Bullets pass through them. The GHOST ship is immune.
+// A gap in the wall gives the player somewhere to squeeze through.
+function spawnWall() {
+  if (state !== 'playing') return;
+  const gapW  = 90 + Math.random() * 60;             // gap width narrows at high levels
+  const gapX  = 20 + Math.random() * (W - gapW - 40); // gap horizontal position
+  const thickness = 14;
+  const spd   = 0.8 + level * 0.08;
+  walls.push({ y: -thickness, spd, thickness, gapX, gapW, phase: Math.random()*Math.PI*2 });
+
+  // Warning
+  wallWarn.style.display = 'block';
+  setTimeout(() => { wallWarn.style.display = 'none'; }, 1800);
+}
+
+function drawWall(w) {
+  const t = Date.now();
+  const alpha = 0.75 + Math.sin(t/120 + w.phase)*0.2;
+  ctx.globalAlpha = alpha;
+
+  // Left segment (before gap)
+  if (w.gapX > 0) {
+    const grad = ctx.createLinearGradient(0, w.y, w.gapX, w.y);
+    grad.addColorStop(0,   'rgba(0,200,255,0)');
+    grad.addColorStop(0.2, '#00ccff');
+    grad.addColorStop(1,   '#00ccff');
+    ctx.fillStyle = grad;
+    ctx.shadowColor = '#00ccff'; ctx.shadowBlur = 18;
+    ctx.fillRect(0, w.y, w.gapX, w.thickness);
+  }
+
+  // Right segment (after gap)
+  const rightStart = w.gapX + w.gapW;
+  if (rightStart < W) {
+    const grad2 = ctx.createLinearGradient(rightStart, w.y, W, w.y);
+    grad2.addColorStop(0,   '#00ccff');
+    grad2.addColorStop(0.8, '#00ccff');
+    grad2.addColorStop(1,   'rgba(0,200,255,0)');
+    ctx.fillStyle = grad2;
+    ctx.shadowBlur = 18;
+    ctx.fillRect(rightStart, w.y, W - rightStart, w.thickness);
+  }
+
+  // Crackling edge sparks
+  ctx.shadowBlur = 0;
+  for (let side = 0; side < 2; side++) {
+    const edgeX = side === 0 ? w.gapX : w.gapX + w.gapW;
+    const sparkN = 4;
+    for (let s = 0; s < sparkN; s++) {
+      const px = edgeX + (Math.random()-0.5)*12;
+      const py = w.y + Math.random() * w.thickness;
+      ctx.fillStyle = Math.random() < 0.5 ? '#fff' : '#00ffff';
+      ctx.beginPath();
+      ctx.arc(px, py, 1.5 + Math.random()*2, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Gap indicator arrows
+  ctx.fillStyle = 'rgba(0,255,255,0.55)';
+  ctx.font = 'bold 11px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('↕ GAP', w.gapX + w.gapW/2, w.y + w.thickness/2 + 4);
+
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
 function explode(x, y, color, count=14) {
   for (let i=0; i<count; i++) {
     const angle = (Math.PI*2/count)*i + Math.random()*0.5;
@@ -815,6 +1051,7 @@ function drawStars() {
 }
 
 function drawShip() {
+  const sc = SHIPS[selectedShip];
   // BOMB DRAWBACK: visual shake while recoiling
   const shakeX = (selectedCannon === 'bomb' && Math.abs(ship.recoilVx) > 1)
     ? (Math.random() - 0.5) * Math.abs(ship.recoilVx) * 0.6 : 0;
@@ -829,13 +1066,13 @@ function drawShip() {
     ctx.lineWidth = 2;
     ctx.globalAlpha = 0.6 + Math.sin(Date.now()/200)*0.3;
     ctx.beginPath();
-    ctx.arc(x, y, 34, 0, Math.PI*2);
+    ctx.arc(x, y, ship.hitbox + 18, 0, Math.PI*2);
     ctx.stroke();
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
   }
 
-  // Combo fire trail: particles streaking behind ship at high combo
+  // Combo fire trail
   if (combo >= 5) {
     const trailColor = combo >= 8 ? '#ff4466' : '#c77dff';
     ctx.shadowColor = trailColor;
@@ -847,38 +1084,10 @@ function drawShip() {
     ctx.shadowBlur = 0;
   }
 
-  // Engine glow (colour intensity scales with combo heat)
-  ctx.shadowColor = cannonColor;
-  ctx.shadowBlur = 18;
-  ctx.fillStyle = cannonColor + '55';
-  ctx.beginPath();
-  ctx.ellipse(x, y + 18, 12, 6, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
+  // Delegate hull to ship config
+  sc.draw(ctx, x, y, cannonColor);
 
-  // Main body
-  ctx.fillStyle = '#00ffcc';
-  ctx.beginPath();
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x - 18, y + 12);
-  ctx.lineTo(x + 18, y + 12);
-  ctx.closePath();
-  ctx.fill();
-
-  // Cannon barrel (coloured by selected cannon)
-  ctx.fillStyle = cannonColor;
-  ctx.fillRect(x - 3, y - 28, 6, 14);
-
-  // Wings
-  ctx.fillStyle = '#00ccaa';
-  ctx.beginPath();
-  ctx.moveTo(x - 18, y + 12); ctx.lineTo(x - 30, y + 20); ctx.lineTo(x - 10, y + 12);
-  ctx.closePath(); ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(x + 18, y + 12); ctx.lineTo(x + 30, y + 20); ctx.lineTo(x + 10, y + 12);
-  ctx.closePath(); ctx.fill();
-
-  // Aim line
+  // Aim line (common to all ships)
   ctx.strokeStyle = 'rgba(0,255,204,0.18)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4,6]);
@@ -1156,11 +1365,13 @@ function drawHUD() {
   ctx.textAlign = 'left';
   ctx.fillText(DIFF[selectedDiff].label, 12, H - 18);
 
-  // Cannon indicator bottom right + active drawback warnings
+  // Ship + cannon indicator bottom right
   const cannonColor = CANNONS[selectedCannon].color;
-  ctx.fillStyle = cannonColor;
   ctx.textAlign = 'right';
   ctx.font = 'bold 11px Courier New';
+  ctx.fillStyle = SHIPS[selectedShip].color;
+  ctx.fillText(SHIPS[selectedShip].label, W-12, H - 32);
+  ctx.fillStyle = cannonColor;
   ctx.fillText(CANNONS[selectedCannon].label, W-12, H - 18);
 
   // LASER: show reload bar so player knows when the speed-up is active
@@ -1361,7 +1572,7 @@ function update(dt) {
   meteors.forEach(m => {
     if (m.hit) return;
     const dist = Math.hypot(ship.x - m.x, ship.y - m.y);
-    if (dist < m.size + 16) {
+    if (dist < m.size + ship.hitbox * 0.7) {
       m.hit = true;
       explode(m.x, m.y, '#ff6400', 20);
       doFlash('#ff6400');
@@ -1369,6 +1580,10 @@ function update(dt) {
       if (shieldActive) {
         shieldActive = false;
         spawnFloater('🛡️ SHIELD BLOCKED IT!', W/2, ship.y - 40, '#4d96ff', 1.8);
+      } else if (SHIPS[selectedShip].meteorAbsorb) {
+        // Tank: first meteor hit per life is free, then normal
+        SHIPS[selectedShip].meteorAbsorb = false;
+        spawnFloater('🛡️ TANK ARMOUR ABSORBED IT!', W/2, ship.y - 40, '#6bcb77', 1.8);
       } else {
         lives--;
         if (lives <= 0) endGame();
@@ -1376,6 +1591,46 @@ function update(dt) {
     }
   });
   meteors = meteors.filter(m => !m.hit && m.y < H + 60);
+
+  // ── Energy walls ──────────────────────────────────────────────────────────
+  // Spawn interval: every 20s at level 1, tightens to 10s by level 10
+  wallTimer += dt;
+  const wallEvery = Math.max(10000, 22000 - level * 1200);
+  if (wallTimer > wallEvery) { wallTimer = 0; spawnWall(); }
+
+  const ghostImmune = selectedShip === 'ghost';
+  walls.forEach(w => { w.y += w.spd * speedMult; });
+
+  // Wall vs Ship collision (ship hitbox is a horizontal band)
+  if (!ghostImmune) {
+    walls.forEach(w => {
+      if (w.hit) return;
+      const shipTop    = ship.y - ship.hitbox;
+      const shipBottom = ship.y + ship.hitbox * 0.5;
+      const shipLeft   = ship.x - ship.hitbox;
+      const shipRight  = ship.x + ship.hitbox;
+      const wallTop    = w.y;
+      const wallBottom = w.y + w.thickness;
+      // Only collide if vertically overlapping
+      if (shipBottom < wallTop || shipTop > wallBottom) return;
+      // Check if ship centre is inside the gap
+      const inGap = ship.x >= w.gapX && ship.x <= w.gapX + w.gapW;
+      if (!inGap) {
+        w.hit = true;
+        doFlash('#00ccff');
+        triggerShake(6, 300);
+        spawnFloater('⚡ WALL HIT!', ship.x, ship.y - 40, '#00ccff', 1.5);
+        if (shieldActive) {
+          shieldActive = false;
+          spawnFloater('🛡️ SHIELD BLOCKED WALL!', W/2, H/2, '#4d96ff', 1.8);
+        } else {
+          lives--;
+          if (lives <= 0) endGame();
+        }
+      }
+    });
+  }
+  walls = walls.filter(w => !w.hit && w.y < H + 20);
 
   // ── Power-up movement & collection ───────────────────────────────────────
   powerups.forEach(p => {
@@ -1389,7 +1644,7 @@ function update(dt) {
       p.hit = true;
       spawnFloater(p.label, p.x, p.y - 20, p.color, 1.6);
       explode(p.x, p.y, p.color, 10);
-      if (p.type === 'shield') shieldActive = true;
+      if (p.type === 'shield') { if (!SHIPS[selectedShip].noShieldDrop) shieldActive = true; else spawnFloater('GHOST: no shield', p.x, p.y-20, '#c77dff', 1.2); }
       if (p.type === 'slowmo') { slowmoActive = true; slowmoEndTime = Date.now() + 3000; }
       if (p.type === 'heart')  lives = Math.min(lives + 1, DIFF[selectedDiff].lives + 1);
     }
@@ -1445,6 +1700,7 @@ function loop(ts) {
 
     drawStars();
     drawShip();
+    walls.forEach(drawWall);
     meteors.forEach(drawMeteor);
     powerups.forEach(drawPowerup);
     aliens.forEach(drawAlien);
@@ -1464,10 +1720,12 @@ requestAnimationFrame(loop);
 // ─── GAME CONTROL ─────────────────────────────────────────────────────────────────
 function startGame() {
   const cfg = DIFF[selectedDiff];
-  score = 0; lives = cfg.lives; level = 1; combo = 0;
+  const sc  = SHIPS[selectedShip];
+  score = 0; level = 1; combo = 0;
+  lives = selectedShip === 'ghost' ? 1 : Math.max(1, cfg.lives + sc.lifeBonus);
   aliens = []; bullets = []; particles = []; meteors = [];
-  powerups = []; floaters = [];
-  meteorTimer = 0;
+  powerups = []; floaters = []; walls = [];
+  meteorTimer = 0; wallTimer = 0;
   lastFireTime = 0;
   laserCooldownActive = false;
   shieldActive = false;
@@ -1484,12 +1742,13 @@ function startGame() {
 function endGame() {
   state = 'gameover';
   meteorWarn.style.display = 'none';
+  wallWarn.style.display = 'none';
   highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
   scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
   const isNewHS = score > highScore;
   if (isNewHS) { highScore = score; localStorage.setItem(HS_KEY(selectedDiff), highScore); }
 
-  scoreHistory.unshift({ score, level, date: new Date().toLocaleDateString('en-AU'), cannon: selectedCannon });
+  scoreHistory.unshift({ score, level, date: new Date().toLocaleDateString('en-AU'), cannon: selectedCannon, ship: selectedShip });
   if (scoreHistory.length > 8) scoreHistory = scoreHistory.slice(0,8);
   localStorage.setItem(SH_KEY(selectedDiff), JSON.stringify(scoreHistory));
 
@@ -1515,6 +1774,7 @@ function renderHistory(id) {
 function showMenu() {
   state = 'menu';
   meteorWarn.style.display = 'none';
+  wallWarn.style.display = 'none';
   highScore    = parseInt(localStorage.getItem(HS_KEY(selectedDiff)) || '0');
   scoreHistory = JSON.parse(localStorage.getItem(SH_KEY(selectedDiff)) || '[]');
   document.getElementById('highscore-display').textContent = `🏆 HIGH SCORE: ${highScore}`;
